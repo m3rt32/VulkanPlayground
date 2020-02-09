@@ -5,6 +5,13 @@
 #include <vector>
 #include <algorithm>
 #include <optional>
+#include <set>
+struct QueueFamilyIndices {
+	std::optional<uint32_t> graphicsFamily;
+	std::optional<uint32_t> presentationFamily;
+	bool IsComplete() { return graphicsFamily.has_value() && presentationFamily.has_value(); }
+};
+
 class Application {
 public:
 	void Run();
@@ -13,12 +20,6 @@ private:
 	void InitVulkan();
 	void Loop();
 	void CleanUp();
-
-public:
-	struct QueueFamilyIndices {
-		std::optional<uint32_t> graphicsFamily;
-		bool IsComplete() { return graphicsFamily.has_value(); }
-	};
 
 private:
 	void CreateVulkanInstance();
@@ -38,5 +39,6 @@ private:
 	VkDevice m_VkLogicalDevice;
 	VkQueue m_graphicsQueue; //Vulkan managed malloc, gets cleaned when device destroyed
 	VkSurfaceKHR m_surface;
+	VkQueue m_presentationQueue;
 };
 

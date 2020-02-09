@@ -19,7 +19,7 @@ void Application::InitWindow()
 void Application::InitVulkan()
 {
 	CreateVulkanInstance();
-	Create
+	CreateSurface();
 	SelectPhysicalDevice();
 	CreateLogicalDevice();
 }
@@ -64,12 +64,12 @@ void Application::CreateVulkanInstance()
 	std::vector<VkExtensionProperties> extensionProperties(supportedExtensionCount);
 	vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionCount, extensionProperties.data());
 
-	#pragma region Optional-Compare supported and required extensions
+#pragma region Optional-Compare supported and required extensions
 	bool allRequiredExtensionsSupported = true;
 	for (int i = 0; i < glfwExtensionCount; i++) {
 		bool currentExtensionExist = false;
 		for (int j = 0; j < extensionProperties.size(); j++) {
-			if (strcmp(extensionProperties[j].extensionName,glfwExtensions[i])==0) {
+			if (strcmp(extensionProperties[j].extensionName, glfwExtensions[i]) == 0) {
 				currentExtensionExist = true;
 				break;
 			}
@@ -85,14 +85,14 @@ void Application::CreateVulkanInstance()
 		std::cout << "Required Extensions are not supported by this machine." << std::endl;
 #pragma endregion
 
-	#pragma region Check validation layers
+#pragma region Check validation layers
 	std::vector<const char*> validationLayers = {
 		"VK_LAYER_KHRONOS_validation"
 	};
 
 	if (!CheckValidationLayers(validationLayers))
 		std::cout << "Validation Layers not supported on current platform";
-	#pragma endregion
+#pragma endregion
 
 
 	VkInstanceCreateInfo createInfo = {};
@@ -113,6 +113,8 @@ void Application::CreateSurface()
 	if (glfwCreateWindowSurface(m_Vkinstance, m_window, nullptr, &m_surface) != VK_SUCCESS) {
 		std::cout << "Failed to display surfaces" << std::endl;
 	}
+
+
 }
 
 void Application::SelectPhysicalDevice()
@@ -140,19 +142,28 @@ void Application::CreateLogicalDevice()
 {
 	QueueFamilyIndices indices = FindQueueFamilyIndices(m_VkPhysicalDevice);
 
-	VkDeviceQueueCreateInfo queueCreateInfo = {};
-	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
-	queueCreateInfo.queueCount = 1;
+
+	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+	//std::set only keeps unique keys. No duplication,if those families are in the same queuefamily, there will be
+	//just a single value.
+	std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(),indices.presentationFamily.value() };
+
 	float queuePriority = 1.0f;
-	queueCreateInfo.pQueuePriorities = &queuePriority;
+	for (auto queueFamily : uniqueQueueFamilies) {
+		VkDeviceQueueCreateInfo queueCreateInfo = {};
+		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+		queueCreateInfo.queueCount = 1;
+		queueCreateInfo.pQueuePriorities = &queuePriority;
+		queueCreateInfos.push_back(queueCreateInfo); //Only adds unique create infos this way.
+	}
 
 	VkPhysicalDeviceFeatures deviceFeatures = {};
 
 	VkDeviceCreateInfo deviceCreateInfo = {};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
-	deviceCreateInfo.queueCreateInfoCount = 1;
+	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+	deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 	deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
 
 	if (vkCreateDevice(m_VkPhysicalDevice, &deviceCreateInfo, nullptr, &m_VkLogicalDevice) != VK_SUCCESS) {
@@ -160,6 +171,7 @@ void Application::CreateLogicalDevice()
 	}
 
 	vkGetDeviceQueue(m_VkLogicalDevice, indices.graphicsFamily.value(), 0, &m_graphicsQueue);
+	vkGetDeviceQueue(m_VkLogicalDevice, indices.presentationFamily.value(), 0, &m_presentationQueue);
 }
 
 bool Application::CheckValidationLayers(const std::vector<const char*>& validationLayers)
@@ -190,7 +202,7 @@ bool Application::IsDeviceSuitable(VkPhysicalDevice targetDevice)
 	return FindQueueFamilyIndices(targetDevice).IsComplete();
 }
 
-Application::QueueFamilyIndices Application::FindQueueFamilyIndices(VkPhysicalDevice targetDevice)
+QueueFamilyIndices Application::FindQueueFamilyIndices(VkPhysicalDevice targetDevice)
 {
 	QueueFamilyIndices indices;
 
@@ -203,6 +215,12 @@ Application::QueueFamilyIndices Application::FindQueueFamilyIndices(VkPhysicalDe
 	for (const auto& queueFamily : queueFamilies) {
 		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 			indices.graphicsFamily = i;
+		}
+		VkBool32 presentSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(targetDevice, i, m_surface, &presentSupport);
+		if (presentSupport)
+		{
+			indices.presentationFamily = i;
 		}
 
 		if (indices.IsComplete())
