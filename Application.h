@@ -6,10 +6,17 @@
 #include <algorithm>
 #include <optional>
 #include <set>
+#include <cstdint>
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
 	std::optional<uint32_t> presentationFamily;
 	bool IsComplete() { return graphicsFamily.has_value() && presentationFamily.has_value(); }
+};
+
+struct SwapChainSupportDetails {
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
 };
 
 class Application {
@@ -26,13 +33,20 @@ private:
 	void CreateSurface();
 	void SelectPhysicalDevice();
 	void CreateLogicalDevice();
+	void CreateSwapChain();
 
 private:
 	bool CheckValidationLayers(const std::vector<const char*>& validationLayers);
 	bool IsDeviceSuitable(VkPhysicalDevice targetDevice);
 	QueueFamilyIndices FindQueueFamilyIndices(VkPhysicalDevice targetDevice);
-
+	SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice targetDevice);
+	bool CheckExtensionSupport(VkPhysicalDevice targetDevice);
+	VkSurfaceFormatKHR PickSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
+	VkPresentModeKHR PickSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
+	VkExtent2D PickSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 private:
+	const float WIDTH = 800;
+	const float HEIGHT = 600;
 	GLFWwindow* m_window;
 	VkInstance m_Vkinstance;
 	VkPhysicalDevice m_VkPhysicalDevice = VK_NULL_HANDLE; //Vulkan manages malloc for this. Don't destroy
@@ -40,5 +54,15 @@ private:
 	VkQueue m_graphicsQueue; //Vulkan managed malloc, gets cleaned when device destroyed
 	VkSurfaceKHR m_surface;
 	VkQueue m_presentationQueue;
+	VkSwapchainKHR m_VkSwapChain;
+	VkFormat m_VkFormat;
+	VkExtent2D m_VkExtent;
+
+private:
+	const std::vector<const char*> deviceExtensions = {
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	};
+
+	std::vector<VkImage> swapChainImages;
 };
 
