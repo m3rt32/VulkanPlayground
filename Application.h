@@ -7,6 +7,7 @@
 #include <optional>
 #include <set>
 #include <cstdint>
+#include <fstream>
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
 	std::optional<uint32_t> presentationFamily;
@@ -34,6 +35,8 @@ private:
 	void SelectPhysicalDevice();
 	void CreateLogicalDevice();
 	void CreateSwapChain();
+	void CreateImageView();
+	void CreateGraphicsPipeline();
 
 private:
 	bool CheckValidationLayers(const std::vector<const char*>& validationLayers);
@@ -44,6 +47,7 @@ private:
 	VkSurfaceFormatKHR PickSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 	VkPresentModeKHR PickSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
 	VkExtent2D PickSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+	VkShaderModule CreateShaderModule(const std::vector<char>& code);
 private:
 	const float WIDTH = 800;
 	const float HEIGHT = 600;
@@ -57,12 +61,18 @@ private:
 	VkSwapchainKHR m_VkSwapChain;
 	VkFormat m_VkFormat;
 	VkExtent2D m_VkExtent;
+	VkPipelineLayout m_VkPipelineLayout;
 
+private:
+	VkShaderModule vertexShaderModule;
+	VkShaderModule fragShaderModule;
+	
 private:
 	const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 
 	std::vector<VkImage> swapChainImages;
+	std::vector<VkImageView> swapChainImageViews;
 };
 
