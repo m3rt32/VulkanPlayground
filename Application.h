@@ -36,6 +36,7 @@ private:
 	void CreateLogicalDevice();
 	void CreateSwapChain();
 	void CreateImageView();
+	void CreateRenderPass();
 	void CreateGraphicsPipeline();
 
 private:
@@ -61,7 +62,9 @@ private:
 	VkSwapchainKHR m_VkSwapChain;
 	VkFormat m_VkFormat;
 	VkExtent2D m_VkExtent;
+	VkRenderPass m_VkRenderPass;
 	VkPipelineLayout m_VkPipelineLayout;
+	VkPipeline m_VkPipeline;
 
 private:
 	VkShaderModule vertexShaderModule;

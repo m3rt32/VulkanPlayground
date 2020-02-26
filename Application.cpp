@@ -36,6 +36,7 @@ void Application::InitVulkan()
 	CreateLogicalDevice();
 	CreateSwapChain();
 	CreateImageView();
+	CreateRenderPass();
 	CreateGraphicsPipeline();
 }
 
@@ -48,7 +49,9 @@ void Application::Loop()
 
 void Application::CleanUp()
 {
+	vkDestroyPipeline(m_VkLogicalDevice, m_VkPipeline, nullptr);
 	vkDestroyPipelineLayout(m_VkLogicalDevice, m_VkPipelineLayout, nullptr);
+	vkDestroyRenderPass(m_VkLogicalDevice, m_VkRenderPass, nullptr);
 	for(auto imageView: swapChainImageViews)
 	{
 		vkDestroyImageView(m_VkLogicalDevice, imageView, nullptr);
@@ -275,6 +278,42 @@ void Application::CreateImageView()
 	}
 }
 
+void Application::CreateRenderPass()
+{
+	//RenderPass
+	VkAttachmentDescription colorAttachment = {};
+	colorAttachment.format = m_VkFormat;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	//Subpass that will be attached to renderpass
+	VkAttachmentReference attachmentReference = {};
+	attachmentReference.attachment = 0;//index of attachmentDescription above.
+	attachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpassDescription = {};
+	subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpassDescription.colorAttachmentCount = 1;
+	subpassDescription.pColorAttachments = &attachmentReference;
+
+	VkRenderPassCreateInfo renderPassCreateInfo = {};
+	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassCreateInfo.attachmentCount = 1;
+	renderPassCreateInfo.pAttachments = &colorAttachment;
+	renderPassCreateInfo.subpassCount = 1;
+	renderPassCreateInfo.pSubpasses = &subpassDescription;
+
+	if(vkCreateRenderPass(m_VkLogicalDevice,&renderPassCreateInfo,nullptr,&m_VkRenderPass)!=VK_SUCCESS)
+	{
+		std::cout << "ERROR CREATING RENDER PASS" << std::endl;
+	}
+}
+
 void Application::CreateGraphicsPipeline()
 {
 	auto vertShaderCode = readFile("shaders/vert.spv");
@@ -382,6 +421,29 @@ void Application::CreateGraphicsPipeline()
 	if(vkCreatePipelineLayout(m_VkLogicalDevice,&pipelineLayoutInfo,nullptr,&m_VkPipelineLayout)!=VK_SUCCESS)
 	{
 		std::cout << "ERROR CREATING PIPELINE LAYOUT" << std::endl;
+	}
+
+	VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
+	pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineCreateInfo.stageCount = 2;
+	pipelineCreateInfo.pStages = shaderStages;
+	pipelineCreateInfo.pInputAssemblyState = &inputAssemblyCreateInfo;
+	pipelineCreateInfo.pVertexInputState = &vertexInputInfo;
+	pipelineCreateInfo.pViewportState = &viewportState;
+	pipelineCreateInfo.pRasterizationState = &rasterizationInfo;
+	pipelineCreateInfo.pMultisampleState = &multisampleInfo;
+	pipelineCreateInfo.pDepthStencilState = nullptr;
+	pipelineCreateInfo.pColorBlendState = &colorBlendInfo;
+	pipelineCreateInfo.pDynamicState = nullptr;
+	pipelineCreateInfo.layout = m_VkPipelineLayout;
+	pipelineCreateInfo.renderPass = m_VkRenderPass;
+	pipelineCreateInfo.subpass = 0; //index of subpass, not count!
+	pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+	pipelineCreateInfo.basePipelineIndex = -1;
+
+	if(vkCreateGraphicsPipelines(m_VkLogicalDevice,VK_NULL_HANDLE,1,&pipelineCreateInfo,nullptr,&m_VkPipeline)!=VK_SUCCESS)
+	{
+		std::cout << "FAILED TO CREATE GRAPHICS PIPELINE" << std::endl;
 	}
 	
 	vkDestroyShaderModule(m_VkLogicalDevice, vertexShaderModule, nullptr);
