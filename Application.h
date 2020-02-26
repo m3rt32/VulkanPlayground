@@ -38,6 +38,7 @@ private:
 	void CreateImageView();
 	void CreateRenderPass();
 	void CreateGraphicsPipeline();
+	void CreateFrameBuffer();
 
 private:
 	bool CheckValidationLayers(const std::vector<const char*>& validationLayers);
@@ -77,5 +78,6 @@ private:
 
 	std::vector<VkImage> swapChainImages;
 	std::vector<VkImageView> swapChainImageViews;
+	std::vector<VkFramebuffer> swapChainFrameBuffers;
 };
 

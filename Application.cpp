@@ -38,6 +38,7 @@ void Application::InitVulkan()
 	CreateImageView();
 	CreateRenderPass();
 	CreateGraphicsPipeline();
+	CreateFrameBuffer();
 }
 
 void Application::Loop()
@@ -49,6 +50,10 @@ void Application::Loop()
 
 void Application::CleanUp()
 {
+	for(auto frameBuffer : swapChainFrameBuffers)
+	{
+		vkDestroyFramebuffer(m_VkLogicalDevice,frameBuffer,nullptr);
+	}
 	vkDestroyPipeline(m_VkLogicalDevice, m_VkPipeline, nullptr);
 	vkDestroyPipelineLayout(m_VkLogicalDevice, m_VkPipelineLayout, nullptr);
 	vkDestroyRenderPass(m_VkLogicalDevice, m_VkRenderPass, nullptr);
@@ -448,6 +453,26 @@ void Application::CreateGraphicsPipeline()
 	
 	vkDestroyShaderModule(m_VkLogicalDevice, vertexShaderModule, nullptr);
 	vkDestroyShaderModule(m_VkLogicalDevice,fragShaderModule,nullptr);
+}
+
+void Application::CreateFrameBuffer()
+{
+	swapChainImages.resize(swapChainImageViews.size());
+	for(size_t i=0;i<swapChainImageViews.size();i++)
+	{
+		VkImageView attachments[] = {
+			swapChainImageViews[i]
+		};
+
+		VkFramebufferCreateInfo frameBufferInfo = {};
+		frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		frameBufferInfo.renderPass = m_VkRenderPass;
+		frameBufferInfo.attachmentCount = 1;
+		frameBufferInfo.pAttachments = attachments;
+		frameBufferInfo.width = m_VkExtent.width;
+		frameBufferInfo.height = m_VkExtent.height;
+		frameBufferInfo.layers = 1;
+	}
 }
 
 bool Application::CheckValidationLayers(const std::vector<const char*>& validationLayers)
