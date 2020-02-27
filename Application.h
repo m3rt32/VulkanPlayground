@@ -41,6 +41,7 @@ private:
 	void CreateFrameBuffer();
 	void CreateCommandPool();
 	void CreateCommandBuffers();
+	void CreateSyncronizers();
 
 private:
 	bool CheckValidationLayers(const std::vector<const char*>& validationLayers);
@@ -52,6 +53,7 @@ private:
 	VkPresentModeKHR PickSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
 	VkExtent2D PickSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 	VkShaderModule CreateShaderModule(const std::vector<char>& code);
+	void DrawFrame();
 private:
 	const float WIDTH = 800;
 	const float HEIGHT = 600;
@@ -71,6 +73,14 @@ private:
 	VkCommandPool m_VkCommandPool;
 
 private:
+	const int MAX_FRAMES_IN_FLIGHT = 2;
+	size_t currentFrame = 0;
+	std::vector<VkSemaphore> imageAvailableSemaphore;
+	std::vector<VkSemaphore> renderFinishedSemaphore;
+	std::vector<VkFence> inFlightFences;
+	std::vector<VkFence> imagesFlightFences;
+	
+private:
 	VkShaderModule vertexShaderModule;
 	VkShaderModule fragShaderModule;
 	
@@ -83,5 +93,6 @@ private:
 	std::vector<VkImageView> swapChainImageViews;
 	std::vector<VkFramebuffer> swapChainFrameBuffers;
 	std::vector<VkCommandBuffer> commandBuffers;
+
 };
 
