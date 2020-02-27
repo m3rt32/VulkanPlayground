@@ -39,6 +39,8 @@ void Application::InitVulkan()
 	CreateRenderPass();
 	CreateGraphicsPipeline();
 	CreateFrameBuffer();
+	CreateCommandPool();
+	CreateCommandBuffers();
 }
 
 void Application::Loop()
@@ -50,6 +52,8 @@ void Application::Loop()
 
 void Application::CleanUp()
 {
+	vkDestroyCommandPool(m_VkLogicalDevice, m_VkCommandPool, nullptr);
+	
 	for(auto frameBuffer : swapChainFrameBuffers)
 	{
 		vkDestroyFramebuffer(m_VkLogicalDevice,frameBuffer,nullptr);
@@ -457,7 +461,7 @@ void Application::CreateGraphicsPipeline()
 
 void Application::CreateFrameBuffer()
 {
-	swapChainImages.resize(swapChainImageViews.size());
+	swapChainFrameBuffers.resize(swapChainImageViews.size());
 	for(size_t i=0;i<swapChainImageViews.size();i++)
 	{
 		VkImageView attachments[] = {
@@ -472,6 +476,73 @@ void Application::CreateFrameBuffer()
 		frameBufferInfo.width = m_VkExtent.width;
 		frameBufferInfo.height = m_VkExtent.height;
 		frameBufferInfo.layers = 1;
+		if(vkCreateFramebuffer(m_VkLogicalDevice,&frameBufferInfo,nullptr,&swapChainFrameBuffers[i])!=VK_SUCCESS)
+		{
+			std::cout << "ERROR CREATING FRAME BUFFER!" << std::endl;
+		}
+	}
+}
+
+void Application::CreateCommandPool()
+{
+	QueueFamilyIndices queueFamilyIndices = FindQueueFamilyIndices(m_VkPhysicalDevice);
+
+	VkCommandPoolCreateInfo commandPoolCreateInfo = {};
+	commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	commandPoolCreateInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+	commandPoolCreateInfo.flags = 0;
+
+	if(vkCreateCommandPool(m_VkLogicalDevice,&commandPoolCreateInfo,nullptr,&m_VkCommandPool)!=VK_SUCCESS)
+	{
+		std::cout << "ERROR CREATING COMMAND POOL!" << std::endl;
+	}
+}
+
+void Application::CreateCommandBuffers()
+{
+	commandBuffers.resize(swapChainFrameBuffers.size());
+	VkCommandBufferAllocateInfo allocateInfo = {};
+	allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocateInfo.commandPool = m_VkCommandPool;
+	allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocateInfo.commandBufferCount = (uint32_t)commandBuffers.size();
+
+	if (vkAllocateCommandBuffers(m_VkLogicalDevice, &allocateInfo, commandBuffers.data())!=VK_SUCCESS)
+	{
+		std::cout << "FAILED ALLOCATION OF COMMAND BUFFERS" << std::endl;
+	}
+
+	for (size_t i=0;i<commandBuffers.size();i++)
+	{
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.pInheritanceInfo = nullptr; //Those two for multiple command buffers
+		beginInfo.flags = 0; //Those two for multiple command buffers
+
+		if(vkBeginCommandBuffer(commandBuffers[i],&beginInfo)!=VK_SUCCESS)
+		{
+			std::cout << "FAILED TO BEGIN COMMAND BUFFER" << std::endl;
+		}
+
+		VkRenderPassBeginInfo renderPassBeginInfo = {};
+		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.renderPass = m_VkRenderPass;
+		renderPassBeginInfo.framebuffer = swapChainFrameBuffers[i];
+		renderPassBeginInfo.renderArea.offset = { 0,0 };
+		renderPassBeginInfo.renderArea.extent = m_VkExtent;
+
+		VkClearValue clearColor = { 0.f,0.f,0.f,1.f };
+		renderPassBeginInfo.clearValueCount = 1;
+		renderPassBeginInfo.pClearValues = &clearColor;
+		vkCmdBeginRenderPass(commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_VkPipeline);
+		vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+		vkCmdEndRenderPass(commandBuffers[i]);
+
+		if(vkEndCommandBuffer(commandBuffers[i])!=VK_SUCCESS)
+		{
+			std::cout << "FAILED TO RECORD COMMAND BUFFER" << std::endl;
+		}
 	}
 }
 

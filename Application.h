@@ -39,6 +39,8 @@ private:
 	void CreateRenderPass();
 	void CreateGraphicsPipeline();
 	void CreateFrameBuffer();
+	void CreateCommandPool();
+	void CreateCommandBuffers();
 
 private:
 	bool CheckValidationLayers(const std::vector<const char*>& validationLayers);
@@ -66,6 +68,7 @@ private:
 	VkRenderPass m_VkRenderPass;
 	VkPipelineLayout m_VkPipelineLayout;
 	VkPipeline m_VkPipeline;
+	VkCommandPool m_VkCommandPool;
 
 private:
 	VkShaderModule vertexShaderModule;
@@ -79,5 +82,6 @@ private:
 	std::vector<VkImage> swapChainImages;
 	std::vector<VkImageView> swapChainImageViews;
 	std::vector<VkFramebuffer> swapChainFrameBuffers;
+	std::vector<VkCommandBuffer> commandBuffers;
 };
 

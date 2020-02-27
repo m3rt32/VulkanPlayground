@@ -2,10 +2,10 @@
   Application.cpp
 C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(28,37): warning C4244: 'argument': conversion from 'const float' to 'int', possible loss of data
 C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(28,30): warning C4244: 'argument': conversion from 'const float' to 'int', possible loss of data
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(94,20): warning C4018: '<': signed/unsigned mismatch
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(128,56): warning C4267: '=': conversion from 'size_t' to 'uint32_t', possible loss of data
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(584,25): warning C4838: conversion from 'const float' to 'uint32_t' requires a narrowing conversion
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(584,25): warning C4244: 'initializing': conversion from 'const float' to 'uint32_t', possible loss of data
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(584,31): warning C4838: conversion from 'const float' to 'uint32_t' requires a narrowing conversion
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(584,31): warning C4244: 'initializing': conversion from 'const float' to 'uint32_t', possible loss of data
+C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(103,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(137,56): warning C4267: '=': conversion from 'size_t' to 'uint32_t', possible loss of data
+C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(680,25): warning C4838: conversion from 'const float' to 'uint32_t' requires a narrowing conversion
+C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(680,25): warning C4244: 'initializing': conversion from 'const float' to 'uint32_t', possible loss of data
+C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(680,31): warning C4838: conversion from 'const float' to 'uint32_t' requires a narrowing conversion
+C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(680,31): warning C4244: 'initializing': conversion from 'const float' to 'uint32_t', possible loss of data
   VulkanKata.vcxproj -> C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\bin\Debug\VulkanKata.exe
