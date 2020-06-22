@@ -167,18 +167,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Application.cpp" />
-    <ClCompile Include="VulkanKata.cpp" />
+    <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\LavaRenderer.cpp" />
+    <ClCompile Include="src\VulkanKata.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Application.h" />
+    <ClInclude Include="src\Application.h" />
+    <ClInclude Include="src\LavaRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\compile.bat" />
     <None Include="shaders\frag.spv" />
     <None Include="shaders\shader.frag" />
     <None Include="shaders\shader.vert" />
-    <None Include="shaders\vert.spv" />
+    <None Include="shaders\triangle.frag.glsl" />
+    <None Include="shaders\triangle.vert.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

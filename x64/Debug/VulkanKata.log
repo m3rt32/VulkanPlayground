@@ -1,11 +1,5 @@
-﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(445,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
-  Application.cpp
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(28,37): warning C4244: 'argument': conversion from 'const float' to 'int', possible loss of data
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(28,30): warning C4244: 'argument': conversion from 'const float' to 'int', possible loss of data
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(112,20): warning C4018: '<': signed/unsigned mismatch
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(146,56): warning C4267: '=': conversion from 'size_t' to 'uint32_t', possible loss of data
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(724,25): warning C4838: conversion from 'const float' to 'uint32_t' requires a narrowing conversion
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(724,25): warning C4244: 'initializing': conversion from 'const float' to 'uint32_t', possible loss of data
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(724,31): warning C4838: conversion from 'const float' to 'uint32_t' requires a narrowing conversion
-C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\Application.cpp(724,31): warning C4244: 'initializing': conversion from 'const float' to 'uint32_t', possible loss of data
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(453,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+  LavaRenderer.cpp
+C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\src\LavaRenderer.cpp(348,19): warning C4244: '=': conversion from 'uint32_t' to 'float', possible loss of data
+C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\src\LavaRenderer.cpp(349,20): warning C4244: '=': conversion from 'uint32_t' to 'float', possible loss of data
   VulkanKata.vcxproj -> C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\bin\Debug\VulkanKata.exe

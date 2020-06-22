@@ -15,15 +15,21 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="VulkanKata.cpp">
+    <ClCompile Include="src\LavaRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Application.cpp">
+    <ClCompile Include="src\VulkanKata.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Application.h">
+    <ClInclude Include="src\LavaRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -34,6 +40,7 @@
     <None Include="shaders\compile.bat">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="shaders\vert.spv" />
+    <None Include="shaders\triangle.frag.glsl" />
+    <None Include="shaders\triangle.vert.glsl" />
   </ItemGroup>
 </Project>
