@@ -1,0 +1,8 @@
+^C:\USERS\MERT2\DESKTOP\XLABS\CPP\VULKANKATA\VULKANKATA\SHADERS\SHADER.FRAG.GLSL
+D:\VulkanSDK\1.2.131.2\Bin\glslangValidator C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\shaders\shader.frag.glsl -V -o shaders/shader.frag.spv
+^C:\USERS\MERT2\DESKTOP\XLABS\CPP\VULKANKATA\VULKANKATA\SHADERS\SHADER.VERT.GLSL
+D:\VulkanSDK\1.2.131.2\Bin\glslangValidator C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\shaders\shader.vert.glsl -V -o shaders/shader.vert.spv
+^C:\USERS\MERT2\DESKTOP\XLABS\CPP\VULKANKATA\VULKANKATA\SHADERS\TRIANGLE.FRAG.GLSL
+D:\VulkanSDK\1.2.131.2\Bin\glslangValidator C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\shaders\triangle.frag.glsl -V -o shaders/triangle.frag.spv
+^C:\USERS\MERT2\DESKTOP\XLABS\CPP\VULKANKATA\VULKANKATA\SHADERS\TRIANGLE.VERT.GLSL
+D:\VulkanSDK\1.2.131.2\Bin\glslangValidator C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\shaders\triangle.vert.glsl -V -o shaders/triangle.vert.spv

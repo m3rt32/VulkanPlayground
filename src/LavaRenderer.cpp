@@ -44,7 +44,20 @@ LavaRenderer::LavaRenderer()
 
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		LAVA_ASSERT(vkBeginCommandBuffer(commandBuffer, &beginInfo)==VK_SUCCESS);
+		LAVA_ASSERT(vkBeginCommandBuffer(commandBuffer, &beginInfo) == VK_SUCCESS);
+
+		ImageLayout beginSrcLayout;
+		beginSrcLayout.AccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		beginSrcLayout.Layout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+		ImageLayout beginDstLayout;
+		beginDstLayout.AccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		beginDstLayout.Layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+
+		VkImageMemoryBarrier renderBeginBarrier = PipelineBarrierImage(swapChainImages[imageIndex], beginSrcLayout, beginDstLayout);
+		vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &renderBeginBarrier);
 
 		VkClearValue color = { .3f,0,0,1 };
 
@@ -79,6 +92,18 @@ LavaRenderer::LavaRenderer()
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, trianglePipeline);
 		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 		vkCmdEndRenderPass(commandBuffer);
+
+		ImageLayout endSrcLayout;
+		endSrcLayout.AccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		endSrcLayout.Layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		ImageLayout endDstLayout;
+		endDstLayout.AccessMask = 0;
+		endDstLayout.Layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		VkImageMemoryBarrier renderEndBarrier = PipelineBarrierImage(swapChainImages[imageIndex], endSrcLayout, endDstLayout);
+		vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &renderEndBarrier);
 
 		vkEndCommandBuffer(commandBuffer);
 
@@ -116,6 +141,7 @@ LavaRenderer::LavaRenderer()
 void LavaRenderer::InitVulkan()
 {
 	CreateInstance();
+	RegisterDebugCallback();
 	CreateSurface();
 	CreateDevice();
 	GetSwapchainSupportData();
@@ -129,8 +155,37 @@ void LavaRenderer::InitVulkan()
 
 void LavaRenderer::DestroyVulkan()
 {
+	LAVA_ASSERT(vkDeviceWaitIdle(activeDevice) == VK_SUCCESS);
+
+	vkDestroyCommandPool(activeDevice, commandPool, 0);
+
+	for (uint32_t i = 0; i < swapChainImages.size(); i++) {
+		vkDestroyImage(activeDevice, swapChainImages[i], 0);
+	}
+
+	for (uint32_t i = 0; i < swapChainImageViews.size(); i++) {
+		vkDestroyImageView(activeDevice, swapChainImageViews[i], 0);
+	}
+
+	for (uint32_t i = 0; i < frameBuffers.size(); i++) {
+		vkDestroyFramebuffer(activeDevice, frameBuffers[i], 0);
+	}
+
+	vkDestroyPipeline(activeDevice, trianglePipeline, 0);
+	vkDestroyPipelineLayout(activeDevice, trianglePipelineLayout, 0);
+	vkDestroyShaderModule(activeDevice, vertShader, 0);
+	vkDestroyShaderModule(activeDevice, fragShader, 0);
+	vkDestroyRenderPass(activeDevice, renderPass, 0);
+	vkDestroySemaphore(activeDevice, acquireSemaphore, 0);
+	vkDestroySemaphore(activeDevice, releaseSemaphore, 0);
+	vkDestroySwapchainKHR(activeDevice, swapChain, 0);
 	vkDestroySurfaceKHR(instance, surface, 0);
 	vkDestroyDevice(activeDevice, 0);
+	
+	PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT =
+		(PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "PFN_vkDestroyDebugReportCallbackEXT");
+
+	vkDestroyDebugReportCallbackEXT(instance, callback, 0);
 	vkDestroyInstance(instance, 0);
 }
 
@@ -139,6 +194,7 @@ VkPhysicalDevice LavaRenderer::PickPhysicalDevice(VkPhysicalDevice* devices, uin
 	for (uint32_t i = 0; i < deviceCount; i++) {
 		VkPhysicalDeviceProperties props;
 		vkGetPhysicalDeviceProperties(devices[i], &props);
+
 
 		if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
 			LAVA_PRINT("Discrete gpu " << props.deviceName << " selected");
@@ -166,23 +222,64 @@ void LavaRenderer::CreateInstance()
 		"VK_LAYER_LUNARG_standard_validation"
 	};
 
-	const char* extensions[] = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
-	};
+	//const char* extensions[] = {
+	//	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	//};
 
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+	extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
 	createInfo.ppEnabledLayerNames = validationLayers;
 	createInfo.enabledLayerCount = 1;
-	createInfo.ppEnabledExtensionNames = glfwExtensions;
-	createInfo.enabledExtensionCount = glfwExtensionCount;
+	createInfo.ppEnabledExtensionNames = extensions.data();
+	createInfo.enabledExtensionCount = extensions.size();
 
 	instance = 0;
 	LAVA_ASSERT(vkCreateInstance(&createInfo, 0, &instance) == VK_SUCCESS);
+}
+
+
+//Cannot be an instance function somehow.
+VKAPI_ATTR VkBool32 VKAPI_CALL MyDebugReportCallback(
+	VkDebugReportFlagsEXT       flags,
+	VkDebugReportObjectTypeEXT  objectType,
+	uint64_t                    object,
+	size_t                      location,
+	int32_t                     messageCode,
+	const char* pLayerPrefix,
+	const char* pMessage,
+	void* pUserData)
+{
+	const char* type = (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) ? "ERROR:" :
+		(flags & (VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)) ? "WARNING:" :
+		"INFO";
+	LAVA_PRINT(type << pMessage);
+
+	if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+		LAVA_ASSERT(!"Validation error!!!");
+
+	return VK_FALSE;
+}
+
+void LavaRenderer::RegisterDebugCallback()
+{
+	VkDebugReportCallbackCreateInfoEXT  debugReportCreateInfo = {};
+	debugReportCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+	debugReportCreateInfo.flags =
+		VK_DEBUG_REPORT_WARNING_BIT_EXT |
+		VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
+		VK_DEBUG_REPORT_ERROR_BIT_EXT;
+	debugReportCreateInfo.pfnCallback = MyDebugReportCallback;
+
+	PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT =
+		(PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+
+	LAVA_ASSERT(vkCreateDebugReportCallbackEXT(instance, &debugReportCreateInfo, nullptr, &callback) == VK_SUCCESS);
 }
 
 void LavaRenderer::CreateDevice()
@@ -193,6 +290,12 @@ void LavaRenderer::CreateDevice()
 	LAVA_ASSERT(vkEnumeratePhysicalDevices(instance, &deviceCount, &(gpus[0])) == VK_SUCCESS);
 	activePhysicalDevice = PickPhysicalDevice(gpus, deviceCount);
 	LAVA_ASSERT(activePhysicalDevice);
+
+	SetGraphicsQueueFamily();
+
+	//VkBool32 presentationSupported = 0; //TODO: This is a HACK, fix later. We should actually check while device pick.
+	//LAVA_ASSERT(vkGetPhysicalDeviceSurfaceSupportKHR(activePhysicalDevice, queueFamilyIndex, surface, &presentationSupported) == VK_SUCCESS);
+	//LAVA_ASSERT(presentationSupported);
 
 	float queuePriorities = 1.;
 	VkDeviceQueueCreateInfo queueInfo = {};
@@ -222,12 +325,17 @@ void LavaRenderer::CreateSurface()
 	LAVA_ASSERT(glfwCreateWindowSurface(instance, window, nullptr, &surface) == VK_SUCCESS);
 }
 
+
 void LavaRenderer::CreateSwapchain()
 {
+	//Query surface support for swapchain specs
+	VkSurfaceCapabilitiesKHR surfaceCapabilities = {};
+	LAVA_ASSERT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(activePhysicalDevice, surface, &surfaceCapabilities) == VK_SUCCESS);
+
 	VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
 	swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	swapChainCreateInfo.surface = surface;
-	swapChainCreateInfo.minImageCount = 2;
+	swapChainCreateInfo.minImageCount = std::max(2u, surfaceCapabilities.minImageCount);
 	swapChainCreateInfo.imageFormat = swapChainData.format;
 	swapChainCreateInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 	swapChainCreateInfo.imageExtent.width = frameBufferWidth;
@@ -237,8 +345,8 @@ void LavaRenderer::CreateSwapchain()
 	swapChainCreateInfo.queueFamilyIndexCount = 1;
 	swapChainCreateInfo.pQueueFamilyIndices = &queueFamilyIndex;
 	swapChainCreateInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR; //swapChainData.presentMode;
+	swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; //OPAQUE NOT SUPPORTED ON ANDROID
 	swapChainCreateInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-	swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
 	LAVA_ASSERT(vkCreateSwapchainKHR(activeDevice, &swapChainCreateInfo, 0, &swapChain) == VK_SUCCESS);
 }
@@ -250,7 +358,7 @@ void LavaRenderer::CreateSemaphore()
 
 	LAVA_ASSERT(vkCreateSemaphore(activeDevice, &semaphoreCreateInfo, nullptr, &acquireSemaphore) == VK_SUCCESS);
 
-	LAVA_ASSERT(vkCreateSemaphore(activeDevice, &semaphoreCreateInfo, nullptr, &releaseSemaphore)==VK_SUCCESS);
+	LAVA_ASSERT(vkCreateSemaphore(activeDevice, &semaphoreCreateInfo, nullptr, &releaseSemaphore) == VK_SUCCESS);
 }
 
 void LavaRenderer::CreateQueue()
@@ -262,9 +370,11 @@ void LavaRenderer::CreateCommandPool()
 {
 	uint32_t swapChainImageCount = 0;
 	LAVA_ASSERT(vkGetSwapchainImagesKHR(activeDevice, swapChain, &swapChainImageCount, 0) == VK_SUCCESS);
-	swapChainImages = new VkImage[swapChainImageCount];
+	swapChainImages = std::vector<VkImage>(swapChainImageCount);
+	swapChainImageViews = std::vector<VkImageView>(swapChainImageCount);
+	frameBuffers = std::vector<VkFramebuffer>(swapChainImageCount);
 
-	LAVA_ASSERT(vkGetSwapchainImagesKHR(activeDevice, swapChain, &swapChainImageCount, swapChainImages) == VK_SUCCESS);
+	LAVA_ASSERT(vkGetSwapchainImagesKHR(activeDevice, swapChain, &swapChainImageCount, swapChainImages.data()) == VK_SUCCESS);
 	//LAVA_ASSERT(vkGetSwapchainImagesKHR(activeDevice, swapChain, &swapChainImageCount, 0) == VK_SUCCESS);
 
 	for (uint32_t i = 0; i < swapChainImageCount; i++) {
@@ -280,7 +390,7 @@ void LavaRenderer::CreateCommandPool()
 	commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 	commandPoolCreateInfo.queueFamilyIndex = queueFamilyIndex;
 
-	LAVA_ASSERT(vkCreateCommandPool(activeDevice, &commandPoolCreateInfo, nullptr, &commandPool)==VK_SUCCESS);
+	LAVA_ASSERT(vkCreateCommandPool(activeDevice, &commandPoolCreateInfo, nullptr, &commandPool) == VK_SUCCESS);
 }
 
 void LavaRenderer::CreateRenderPass()
@@ -298,7 +408,7 @@ void LavaRenderer::CreateRenderPass()
 	attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	attachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	VkAttachmentReference colorAttachments;
 	colorAttachments.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -317,13 +427,13 @@ void LavaRenderer::CreateRenderPass()
 	renderPassCreateInfo.subpassCount = 1;
 	renderPassCreateInfo.pSubpasses = &subpass;
 
-	LAVA_ASSERT(vkCreateRenderPass(activeDevice, &renderPassCreateInfo, nullptr, &renderPass)==VK_SUCCESS);
+	LAVA_ASSERT(vkCreateRenderPass(activeDevice, &renderPassCreateInfo, nullptr, &renderPass) == VK_SUCCESS);
 }
 
 void LavaRenderer::CreateGraphicsPipeline()
 {
-	vertShader = LoadShader("shaders/vert.spv");
-	fragShader = LoadShader("shaders/frag.spv");
+	vertShader = LoadShader("shaders/shader.vert.spv");
+	fragShader = LoadShader("shaders/shader.frag.spv");
 	VkPipelineCache pipelineCache = 0;//critical for performance, fill later, don't leave zero inited
 
 	VkPipelineShaderStageCreateInfo stages[2] = {};
@@ -339,7 +449,7 @@ void LavaRenderer::CreateGraphicsPipeline()
 
 	VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo = {}; //Probably fill this when switch to VBOs
 	vertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	
+
 	VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo = {};
 	inputAssemblyCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 	inputAssemblyCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -461,23 +571,69 @@ VkImageView LavaRenderer::CreateImageView(VkImage image)
 	return imageView;
 }
 
+VkImageMemoryBarrier LavaRenderer::PipelineBarrierImage(VkImage image, ImageLayout sourceLayout, ImageLayout targetLayout)
+{
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.srcAccessMask = sourceLayout.AccessMask;
+	barrier.dstAccessMask = targetLayout.AccessMask;
+	barrier.oldLayout = sourceLayout.Layout;
+	barrier.newLayout = targetLayout.Layout;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = image;
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	//BUG: Some android drivers don't support these constants
+	barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;  
+	barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+	return barrier;
+}
+
 void LavaRenderer::GetSwapchainSupportData()
 {
 	swapChainData = {};
-	VkSurfaceFormatKHR surfaceFormat[16];
-	uint32_t surfaceFormatCount = sizeof(surfaceFormat) / sizeof(surfaceFormat[0]);
-	LAVA_ASSERT(vkGetPhysicalDeviceSurfaceFormatsKHR(activePhysicalDevice, surface, &surfaceFormatCount, surfaceFormat) ==VK_SUCCESS);
-	swapChainData.format = surfaceFormat->format;
+	uint32_t surfaceFormatCount = 0;
+	LAVA_ASSERT(vkGetPhysicalDeviceSurfaceFormatsKHR(activePhysicalDevice, surface, &surfaceFormatCount, 0) == VK_SUCCESS);
+	LAVA_ASSERT(surfaceFormatCount > 0);
+
+	std::vector<VkSurfaceFormatKHR> surfaceFormat(surfaceFormatCount);
+	LAVA_ASSERT(vkGetPhysicalDeviceSurfaceFormatsKHR(activePhysicalDevice, surface, &surfaceFormatCount, surfaceFormat.data()) == VK_SUCCESS);
+	swapChainData.format = surfaceFormat[0].format;
 
 	VkPresentModeKHR presentMode[16];
 	uint32_t presentModeCount = sizeof(presentMode) / sizeof(presentMode[0]);
 	LAVA_ASSERT(vkGetPhysicalDeviceSurfacePresentModesKHR(activePhysicalDevice, surface, &presentModeCount, presentMode) == VK_SUCCESS);
-	
+
 	swapChainData.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-	for(VkPresentModeKHR present : presentMode) {
+	for (VkPresentModeKHR present : presentMode) {
 		if (present == VK_PRESENT_MODE_MAILBOX_KHR)
 			swapChainData.presentMode = present;
 	}
+}
+
+void LavaRenderer::SetGraphicsQueueFamily()
+{
+	uint32_t queuePropertyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(activePhysicalDevice, &queuePropertyCount, 0);
+	std::vector<VkQueueFamilyProperties> queueFamilyProperties(queuePropertyCount);
+
+	vkGetPhysicalDeviceQueueFamilyProperties(activePhysicalDevice, &queuePropertyCount, queueFamilyProperties.data());
+
+	for (uint32_t i = 0; i < queuePropertyCount; i++) {
+		if (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		{
+			VkBool32 presentationSupport = 0;
+			vkGetPhysicalDeviceSurfaceSupportKHR(activePhysicalDevice, i, surface, &presentationSupport);
+			if (presentationSupport) {
+				queueFamilyIndex = i;
+				return;
+			}
+		}
+	}
+
+	LAVA_ASSERT(!"No graphics queue supported GPU found");
+	queueFamilyIndex = ~0u;
 }
 
 VkShaderModule LavaRenderer::LoadShader(const char* path)

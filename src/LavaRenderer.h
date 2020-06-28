@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include <iostream>
+#include <vector>
+#include <algorithm>
 
 #include <GLFW/glfw3.h>
 //#include <vulkan/vulkan.h>
@@ -13,6 +15,11 @@ struct SwapChainData {
 public:
 	VkFormat format;
 	VkPresentModeKHR presentMode;
+};
+
+struct ImageLayout {
+	VkAccessFlags AccessMask;
+	VkImageLayout Layout;
 };
 
 class LavaRenderer {
@@ -24,6 +31,7 @@ public:
 private:
 	VkPhysicalDevice PickPhysicalDevice(VkPhysicalDevice* devices, uint32_t deviceCount);
 	void CreateInstance();
+	void RegisterDebugCallback();
 	void CreateDevice();
 	void CreateSurface();
 	void CreateSwapchain();
@@ -34,6 +42,7 @@ private:
 	void CreateGraphicsPipeline();
 	VkFramebuffer CreateFrameBuffer(VkImageView imageView);
 	VkImageView CreateImageView(VkImage image);
+	VkImageMemoryBarrier PipelineBarrierImage(VkImage image,ImageLayout sourceLayout,ImageLayout targetLayout);
 
 private:
 	GLFWwindow* window;
@@ -47,16 +56,18 @@ private:
 	VkQueue queue;
 	VkCommandPool commandPool;
 	VkRenderPass renderPass;
-	VkImage* swapChainImages;
-	VkFramebuffer frameBuffers[16];
-	VkImageView swapChainImageViews[16];
+	std::vector<VkImage> swapChainImages;
+	std::vector<VkFramebuffer> frameBuffers;
+	std::vector<VkImageView> swapChainImageViews;
 	VkShaderModule vertShader;
 	VkShaderModule fragShader;
 	VkPipeline trianglePipeline;
 	VkPipelineLayout trianglePipelineLayout;
+	VkDebugReportCallbackEXT callback = 0;
 
 private:
 	void GetSwapchainSupportData();
+	void SetGraphicsQueueFamily();
 	VkShaderModule LoadShader(const char* path);
 
 
