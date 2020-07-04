@@ -15,6 +15,10 @@ struct SwapChainData {
 public:
 	VkFormat format;
 	VkPresentModeKHR presentMode;
+	std::vector<VkImage> swapChainImages;
+	std::vector<VkFramebuffer> frameBuffers;
+	std::vector<VkImageView> swapChainImageViews;
+	uint32_t width, height;
 };
 
 struct ImageLayout {
@@ -29,12 +33,14 @@ public:
 	void DestroyVulkan();
 
 private:
+	void CreateSwapchain();
+	void DestroySwapchain();
+private:
 	VkPhysicalDevice PickPhysicalDevice(VkPhysicalDevice* devices, uint32_t deviceCount);
 	void CreateInstance();
 	void RegisterDebugCallback();
 	void CreateDevice();
 	void CreateSurface();
-	void CreateSwapchain();
 	void CreateSemaphore();
 	void CreateQueue();
 	void CreateCommandPool();
@@ -56,9 +62,6 @@ private:
 	VkQueue queue;
 	VkCommandPool commandPool;
 	VkRenderPass renderPass;
-	std::vector<VkImage> swapChainImages;
-	std::vector<VkFramebuffer> frameBuffers;
-	std::vector<VkImageView> swapChainImageViews;
 	VkShaderModule vertShader;
 	VkShaderModule fragShader;
 	VkPipeline trianglePipeline;

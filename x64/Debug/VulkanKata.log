@@ -1,4 +1,6 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(453,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
-  1>Performing Custom Build Tools
-  C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\shaders\shader.vert.glsl
+  LavaRenderer.cpp
+C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\src\LavaRenderer.cpp(237,54): warning C4267: '=': conversion from 'size_t' to 'uint32_t', possible loss of data
+C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\src\LavaRenderer.cpp(483,19): warning C4244: '=': conversion from 'uint32_t' to 'float', possible loss of data
+C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\VulkanKata\src\LavaRenderer.cpp(484,20): warning C4244: '=': conversion from 'uint32_t' to 'float', possible loss of data
   VulkanKata.vcxproj -> C:\Users\mert2\Desktop\XLabs\CPP\VulkanKata\bin\Debug\VulkanKata.exe

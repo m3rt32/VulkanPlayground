@@ -1,5 +1,6 @@
 #include "LavaRenderer.h"
-
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
 
 #define VK_CHECK(call) \
 		do{ \
@@ -9,6 +10,20 @@
 
 #define LAVA_ASSERT(x) assert(x)
 #define LAVA_PRINT(s) std::cout<<s<<std::endl
+void LoadMesh() {
+	tinyobj::attrib_t attrib;
+	std::vector<tinyobj::shape_t> shapes;
+	std::vector<tinyobj::material_t> materials;
+	std::string warn, err;
+
+	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "assets/monkey.obj")) {
+		throw std::runtime_error(warn + err);
+	}
+
+	for (auto& shape : shapes) {
+		//shape.
+	}
+}
 
 LavaRenderer::LavaRenderer()
 {
@@ -35,6 +50,7 @@ LavaRenderer::LavaRenderer()
 	VkCommandBuffer commandBuffer;
 	LAVA_ASSERT(vkAllocateCommandBuffers(activeDevice, &allocateInfo, &commandBuffer) == VK_SUCCESS);
 
+
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		uint32_t imageIndex = 0;
@@ -55,8 +71,8 @@ LavaRenderer::LavaRenderer()
 		beginDstLayout.Layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 
-		VkImageMemoryBarrier renderBeginBarrier = PipelineBarrierImage(swapChainImages[imageIndex], beginSrcLayout, beginDstLayout);
-		vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		VkImageMemoryBarrier renderBeginBarrier = PipelineBarrierImage(swapChainData.swapChainImages[imageIndex], beginSrcLayout, beginDstLayout);
+		vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 			VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &renderBeginBarrier);
 
 		VkClearValue color = { .3f,0,0,1 };
@@ -65,7 +81,7 @@ LavaRenderer::LavaRenderer()
 		VkRenderPassBeginInfo beginPassInfo = {};
 		beginPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		beginPassInfo.renderPass = renderPass;
-		beginPassInfo.framebuffer = frameBuffers[imageIndex];
+		beginPassInfo.framebuffer = swapChainData.frameBuffers[imageIndex];
 		beginPassInfo.renderArea.extent.width = frameBufferWidth; //Useful for tiled rendering, specifying helps to performance for them
 		beginPassInfo.renderArea.extent.height = frameBufferHeight;
 		beginPassInfo.pClearValues = &color;
@@ -101,7 +117,7 @@ LavaRenderer::LavaRenderer()
 		endDstLayout.AccessMask = 0;
 		endDstLayout.Layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-		VkImageMemoryBarrier renderEndBarrier = PipelineBarrierImage(swapChainImages[imageIndex], endSrcLayout, endDstLayout);
+		VkImageMemoryBarrier renderEndBarrier = PipelineBarrierImage(swapChainData.swapChainImages[imageIndex], endSrcLayout, endDstLayout);
 		vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 			VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &renderEndBarrier);
 
@@ -159,31 +175,12 @@ void LavaRenderer::DestroyVulkan()
 
 	vkDestroyCommandPool(activeDevice, commandPool, 0);
 
-	for (uint32_t i = 0; i < swapChainImages.size(); i++) {
-		vkDestroyImage(activeDevice, swapChainImages[i], 0);
-	}
-
-	for (uint32_t i = 0; i < swapChainImageViews.size(); i++) {
-		vkDestroyImageView(activeDevice, swapChainImageViews[i], 0);
-	}
-
-	for (uint32_t i = 0; i < frameBuffers.size(); i++) {
-		vkDestroyFramebuffer(activeDevice, frameBuffers[i], 0);
-	}
-
-	vkDestroyPipeline(activeDevice, trianglePipeline, 0);
-	vkDestroyPipelineLayout(activeDevice, trianglePipelineLayout, 0);
-	vkDestroyShaderModule(activeDevice, vertShader, 0);
-	vkDestroyShaderModule(activeDevice, fragShader, 0);
-	vkDestroyRenderPass(activeDevice, renderPass, 0);
-	vkDestroySemaphore(activeDevice, acquireSemaphore, 0);
-	vkDestroySemaphore(activeDevice, releaseSemaphore, 0);
-	vkDestroySwapchainKHR(activeDevice, swapChain, 0);
+	DestroySwapchain();
 	vkDestroySurfaceKHR(instance, surface, 0);
 	vkDestroyDevice(activeDevice, 0);
 	
 	PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT =
-		(PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "PFN_vkDestroyDebugReportCallbackEXT");
+		(PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
 
 	vkDestroyDebugReportCallbackEXT(instance, callback, 0);
 	vkDestroyInstance(instance, 0);
@@ -334,6 +331,9 @@ void LavaRenderer::CreateSwapchain()
 
 	VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
 	swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	if (swapChain) {
+		swapChainCreateInfo.oldSwapchain = swapChain;
+	}
 	swapChainCreateInfo.surface = surface;
 	swapChainCreateInfo.minImageCount = std::max(2u, surfaceCapabilities.minImageCount);
 	swapChainCreateInfo.imageFormat = swapChainData.format;
@@ -349,6 +349,31 @@ void LavaRenderer::CreateSwapchain()
 	swapChainCreateInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 
 	LAVA_ASSERT(vkCreateSwapchainKHR(activeDevice, &swapChainCreateInfo, 0, &swapChain) == VK_SUCCESS);
+}
+
+void LavaRenderer::DestroySwapchain()
+{
+	// Causes an assertion on Swapchain destroy, swapchain probably auto destroys this?
+	//for (uint32_t i = 0; i < swapChainData.swapChainImages.size(); i++) {
+	//	vkDestroyImage(activeDevice, swapChainData.swapChainImages[i], 0);
+	//}
+
+	for (uint32_t i = 0; i < swapChainData.frameBuffers.size(); i++) {
+		vkDestroyFramebuffer(activeDevice, swapChainData.frameBuffers[i], 0);
+	}
+
+	for (uint32_t i = 0; i < swapChainData.swapChainImageViews.size(); i++) {
+		vkDestroyImageView(activeDevice, swapChainData.swapChainImageViews[i], 0);
+	}
+
+	vkDestroyPipeline(activeDevice, trianglePipeline, 0);
+	vkDestroyPipelineLayout(activeDevice, trianglePipelineLayout, 0);
+	vkDestroyShaderModule(activeDevice, vertShader, 0);
+	vkDestroyShaderModule(activeDevice, fragShader, 0);
+	vkDestroyRenderPass(activeDevice, renderPass, 0);
+	vkDestroySemaphore(activeDevice, acquireSemaphore, 0);
+	vkDestroySemaphore(activeDevice, releaseSemaphore, 0);
+	vkDestroySwapchainKHR(activeDevice, swapChain, 0);
 }
 
 void LavaRenderer::CreateSemaphore()
@@ -370,19 +395,19 @@ void LavaRenderer::CreateCommandPool()
 {
 	uint32_t swapChainImageCount = 0;
 	LAVA_ASSERT(vkGetSwapchainImagesKHR(activeDevice, swapChain, &swapChainImageCount, 0) == VK_SUCCESS);
-	swapChainImages = std::vector<VkImage>(swapChainImageCount);
-	swapChainImageViews = std::vector<VkImageView>(swapChainImageCount);
-	frameBuffers = std::vector<VkFramebuffer>(swapChainImageCount);
+	swapChainData.swapChainImages = std::vector<VkImage>(swapChainImageCount);
+	swapChainData.swapChainImageViews = std::vector<VkImageView>(swapChainImageCount);
+	swapChainData.frameBuffers = std::vector<VkFramebuffer>(swapChainImageCount);
 
-	LAVA_ASSERT(vkGetSwapchainImagesKHR(activeDevice, swapChain, &swapChainImageCount, swapChainImages.data()) == VK_SUCCESS);
+	LAVA_ASSERT(vkGetSwapchainImagesKHR(activeDevice, swapChain, &swapChainImageCount, swapChainData.swapChainImages.data()) == VK_SUCCESS);
 	//LAVA_ASSERT(vkGetSwapchainImagesKHR(activeDevice, swapChain, &swapChainImageCount, 0) == VK_SUCCESS);
 
 	for (uint32_t i = 0; i < swapChainImageCount; i++) {
-		swapChainImageViews[i] = CreateImageView(swapChainImages[i]);
+		swapChainData.swapChainImageViews[i] = CreateImageView(swapChainData.swapChainImages[i]);
 	}
 
 	for (uint32_t i = 0; i < swapChainImageCount; i++) {
-		frameBuffers[i] = CreateFrameBuffer(swapChainImageViews[i]);
+		swapChainData.frameBuffers[i] = CreateFrameBuffer(swapChainData.swapChainImageViews[i]);
 	}
 
 	VkCommandPoolCreateInfo commandPoolCreateInfo = {};

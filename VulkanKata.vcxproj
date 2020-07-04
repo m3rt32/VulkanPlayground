@@ -113,7 +113,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)VulkanKata\vendor\GLFW\include;$(SolutionDir)VulkanKata\vendor\glm;$(SolutionDir)VulkanKata\vendor\vulkan\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)VulkanKata\vendor\GLFW\include;$(SolutionDir)VulkanKata\vendor\glm;$(SolutionDir)VulkanKata\vendor\vulkan\Include;$(SolutionDir)VulkanKata\vendor\tinyobjloader;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
