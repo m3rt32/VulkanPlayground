@@ -26,6 +26,28 @@ struct ImageLayout {
 	VkImageLayout Layout;
 };
 
+struct LavaGpuBuffer {
+	VkBuffer buffer;
+	VkDeviceMemory memory;
+	void* data;
+	size_t size;
+};
+
+
+struct Vec3 {
+	float x, y, z;
+};
+
+struct Vertex {
+	Vec3 Position;
+	Vec3 Normal;
+};
+
+struct Mesh {
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
+};
+
 class LavaRenderer {
 public:
 	LavaRenderer();
@@ -49,7 +71,11 @@ private:
 	VkFramebuffer CreateFrameBuffer(VkImageView imageView);
 	VkImageView CreateImageView(VkImage image);
 	VkImageMemoryBarrier PipelineBarrierImage(VkImage image,ImageLayout sourceLayout,ImageLayout targetLayout);
+	uint32_t SelectBufferMemoryTypeIndex(uint32_t requiredMemoryTypeBits, VkMemoryPropertyFlags requiredFlags);
 
+private:
+	void CreateBuffer(LavaGpuBuffer& buffer, size_t size,VkBufferUsageFlags usageFlags);
+	void DestroyBuffer(const LavaGpuBuffer& buffer);
 private:
 	GLFWwindow* window;
 	VkInstance instance;
@@ -67,6 +93,7 @@ private:
 	VkPipeline trianglePipeline;
 	VkPipelineLayout trianglePipelineLayout;
 	VkDebugReportCallbackEXT callback = 0;
+	VkPhysicalDeviceMemoryProperties memoryProperties;
 
 private:
 	void GetSwapchainSupportData();
